@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4eee4">
+  <title>A visual proof of the Pythagorean theorem</title>
+  <style>
+    :root { color-scheme: light; font-family: Georgia, "Times New Roman", serif; color: #172747; background: #f4eee4; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: radial-gradient(circle at 50% 0, #fffaf0, #f4eee4 70%); }
+    main { width: min(100% - 2rem, 1100px); padding: 2rem 0; }
+    .screen { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border: 1px solid #d8c8a9; border-radius: 1rem; background: #fffdf8; box-shadow: 0 24px 64px #17274718; }
+    .screen::before { content: ""; position: absolute; inset: 1.15rem; border: 1px solid #e8dcc6; border-radius: .45rem; pointer-events: none; z-index: 5; }
+    .scene { position: absolute; inset: 0; display: grid; grid-template-rows: auto 1fr auto; align-items: center; padding: clamp(1.5rem, 3vw, 3rem) clamp(1.5rem, 5vw, 4rem); opacity: 0; visibility: hidden; transition: opacity 1s ease, visibility 1s; }
+    .scene.active { opacity: 1; visibility: visible; z-index: 1; }
+    .first { grid-template-columns: 1.2fr .8fr; grid-template-rows: auto 1fr; column-gap: 1.5rem; }
+    .first h1 { grid-column: 1 / -1; }
+    .first svg { grid-column: 1; grid-row: 2; }
+    .first .side-copy { grid-column: 2; grid-row: 2; align-self: center; }
+    .first .caption { display: block; margin: 0; text-align: left; font-size: clamp(1.05rem, 2vw, 1.45rem); }
+    .first .ratio { margin: 0 0 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid #d8c8a9; color: #94641c; font-size: clamp(1rem, 1.75vw, 1.3rem); font-style: italic; }
+    .fraction { display: inline-grid; vertical-align: middle; text-align: center; line-height: 1.2; }
+    .fraction span:first-child { padding: 0 .25rem .25rem; border-bottom: 1px solid currentColor; }
+    .fraction span:last-child { padding: .25rem .25rem 0; }
+    h1 { display: grid; margin: 0; text-align: center; font-size: clamp(1.45rem, 3.3vw, 2.8rem); font-weight: 500; letter-spacing: -.035em; }
+    h1 span { grid-area: 1 / 1; transition: opacity .55s ease; }
+    .scene svg { display: block; width: 100%; max-height: 100%; margin: auto; overflow: visible; }
+    .proof svg { opacity: 0; transition: opacity .5s ease; }
+    .proof.active svg { opacity: 1; transition: opacity 1s ease 1.1s; }
+    .caption { display: grid; min-height: 3.5rem; max-width: 50rem; margin: .4rem auto 0; color: #42506a; text-align: center; font: clamp(.85rem, 1.45vw, 1.15rem)/1.5 system-ui, sans-serif; }
+    .caption span { grid-area: 1 / 1; transition: opacity .55s ease; }
+    svg text { font-family: Georgia, "Times New Roman", serif; fill: #172747; text-anchor: middle; dominant-baseline: middle; }
+    .outline { stroke: #172747; stroke-width: 3; stroke-linejoin: round; }
+    .triangle-c { fill: #8cabb8; }
+    .square-c { fill: #d3e2e5; }
+    .proof .morph-square { fill: transparent; stroke: #7b8797; stroke-width: 2.5; stroke-dasharray: 4 7; stroke-linecap: round; stroke-linejoin: round; transition: fill 1.5s ease, stroke 1.5s ease, stroke-dasharray 1.5s ease; }
+    .proof .morph-triangle { stroke: #172747; stroke-width: 3; stroke-dasharray: 1000 0; stroke-linecap: round; stroke-linejoin: round; transition: fill 1.5s ease, stroke 1.5s ease, stroke-dasharray 1.5s ease; }
+    .proof .morph-triangle-a { fill: #e99b84; }
+    .proof .morph-triangle-b { fill: #eec46f; }
+    .proof.squares-active .morph-square { stroke: #172747; stroke-dasharray: 1000 0; }
+    .proof.squares-active .morph-square-a { fill: #f5d4ca; }
+    .proof.squares-active .morph-square-b { fill: #f9e9bf; }
+    .proof.squares-active .morph-square-c { fill: #d3e2e5; }
+    .proof.squares-active .morph-triangle { fill: transparent; stroke: #7b8797; stroke-dasharray: 4 7; }
+    .angle-marker { fill: none; stroke: #172747; stroke-width: 2.5; stroke-dasharray: 1000 0; stroke-linejoin: round; transition: stroke 1.5s ease, stroke-dasharray 1.5s ease; }
+    .proof.squares-active .angle-marker { stroke: #7b8797; stroke-dasharray: 4 7; }
+    .proof .square-label { opacity: 0; transition: opacity .7s ease .55s; }
+    .proof.squares-active .square-label { opacity: 1; }
+    .phase-two { opacity: 0; }
+    .proof.squares-active .phase-one { opacity: 0; }
+    .proof.squares-active .phase-two { opacity: 1; }
+    .symbol { font-size: 30px; font-style: italic; }
+    .operator { font-size: 48px; }
+    .scale-pair, .term-a, .term-b, .term-c { transform-box: fill-box; transform-origin: center; }
+    .first.active .scale-pair { animation: grow 4.33s ease-in-out both; }
+    .proof.active .term-a { animation: arrive .6s 1.2s both; }
+    .proof.active .term-b { animation: arrive .6s 2s both; }
+    .proof.active .term-c { animation: arrive .6s 2.8s both; }
+    .proof.active .operator { animation: reveal .4s 1.7s both; }
+    .proof.active .equals { animation-delay: 2.5s; }
+    @keyframes arrive { from { opacity: 0; transform: translateY(14px) scale(.94); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes grow { 0%, 10% { transform: scale(.55); } 55%, 100% { transform: scale(1.125); } }
+    @keyframes reveal { from { opacity: 0; } to { opacity: 1; } }
+    .controls { display: flex; align-items: center; gap: 1rem; padding: 1rem .25rem 0; font: .9rem system-ui, sans-serif; }
+    button { flex: none; border: 1px solid #172747; border-radius: .4rem; padding: .55rem .9rem; background: #172747; color: #fff; font: inherit; cursor: pointer; }
+    button:hover { background: #29446d; }
+    button:focus-visible, input:focus-visible { outline: 3px solid #b77e25; outline-offset: 3px; }
+    .secondary { background: transparent; color: #172747; }
+    .secondary:hover { background: #e9e1d5; }
+    input[type="range"] { flex: 1; accent-color: #a87626; cursor: pointer; }
+    output { flex: none; min-width: 5.5rem; color: #42506a; font-variant-numeric: tabular-nums; text-align: right; }
+    @media (max-width: 650px) { main { width: min(100% - .7rem, 1100px); } .screen { aspect-ratio: 4 / 5; } .scene { padding: 1.5rem .85rem; } .scene svg { max-height: 68%; } .caption { min-height: 5.5rem; font-size: .85rem; } .first { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; } .first h1, .first svg, .first .side-copy { grid-column: 1; } .first svg { grid-row: 2; max-height: 55%; } .first .side-copy { grid-row: 3; } .first .caption { min-height: 0; text-align: center; font-size: .9rem; } .first .ratio { margin: 0 0 .5rem; padding-bottom: .5rem; text-align: center; font-size: .95rem; } h1 { font-size: 1.5rem; } .controls { gap: .5rem; } button { padding: .5rem .65rem; } output { min-width: 4.2rem; } }
+    @media (prefers-reduced-motion: reduce) { .scene, .proof svg, .proof .morph-square, .proof .morph-triangle, .proof .square-label, h1 span, .caption span { transition: none; } .scene.active * { animation: none !important; } }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="screen" aria-label="Animated proof of the Pythagorean theorem">
+      <section class="scene first active" aria-hidden="false">
+        <h1>The area ratio stays constant</h1>
+        <svg viewBox="230 0 540 480" role="img" aria-label="One right triangle and the square on its hypotenuse grow together, keeping the same shape and area ratio.">
+          <g class="scale-pair">
+            <rect class="square-c outline" x="380" y="160" width="240" height="240"/>
+            <path class="triangle-c outline" d="M380 160 L466.4 44.8 L620 160 Z"/>
+            <path class="angle-marker" d="M455.6 59.2 L470 70 L480.8 55.6"/>
+          </g>
+        </svg>
+        <div class="side-copy">
+          <p class="ratio" aria-label="Triangle area divided by square area equals a constant"><span class="fraction" aria-hidden="true"><span>triangle area</span><span>square area</span></span> = constant</p>
+          <p class="caption">Scale the triangle by <i>t</i>. Its area and the square’s area both grow by <i>t</i>², so their ratio stays fixed.</p>
+        </div>
+      </section>
+
+      <section class="scene proof" aria-hidden="true">
+        <h1><span class="phase-one">The triangle areas add up</span><span class="phase-two">Therefore the square areas do too!</span></h1>
+        <svg viewBox="-20 -35 860 370" role="img" aria-label="A coral triangle plus a gold triangle equals the whole triangle. Without moving, the triangles fade to dotted outlines while the squares on their hypotenuses gain fill, showing that the square areas also add up.">
+          <g class="term-a">
+            <path class="morph-square morph-square-a" d="M70 145 L124 73 L52 19 L-2 91 Z"/>
+            <path class="morph-triangle morph-triangle-a" d="M70 145 L124 73 L124 145 Z"/>
+            <path class="angle-marker" d="M124 133 H112 V145"/>
+            <text class="symbol square-label" x="61" y="82">a²</text>
+          </g>
+          <text class="operator" x="225" y="110">+</text>
+          <g class="term-b">
+            <path class="morph-square morph-square-b" d="M300 73 L396 145 L468 49 L372 -23 Z"/>
+            <path class="morph-triangle morph-triangle-b" d="M300 73 L396 145 L300 145 Z"/>
+            <path class="angle-marker" d="M300 133 H312 V145"/>
+            <text class="symbol square-label" x="384" y="61">b²</text>
+          </g>
+          <text class="operator equals" x="490" y="110">=</text>
+          <g class="term-c">
+            <path class="morph-square morph-square-c" d="M570 145 L720 145 L720 295 L570 295 Z"/>
+            <path class="morph-triangle morph-triangle-a" d="M570 145 L624 73 L624 145 Z"/>
+            <path class="morph-triangle morph-triangle-b" d="M624 73 L720 145 L624 145 Z"/>
+            <path class="angle-marker" d="M615.6 84.2 L626.8 92.6 L635.2 81.4"/>
+            <text class="symbol square-label" x="645" y="220">c²</text>
+          </g>
+        </svg>
+        <p class="caption"><span class="phase-one">The altitude makes two smaller right triangles. Each shares an acute angle with the original, so all three are similar.</span><span class="phase-two">Each triangle is the same fraction of its square. The triangle sum therefore gives the square sum.</span></p>
+      </section>
+    </div>
+    <div class="controls" aria-label="Playback controls">
+      <button id="play" type="button" aria-label="Pause animation">Pause</button>
+      <button id="replay" class="secondary" type="button">Replay</button>
+      <input id="progress" type="range" min="0" max="18667" value="0" aria-label="Animation position">
+      <output id="time" for="progress">0:00 / 0:19</output>
+    </div>
+  </main>
+  <script>
+    const scenes = [...document.querySelectorAll('.scene')];
+    const playButton = document.querySelector('#play');
+    const replayButton = document.querySelector('#replay');
+    const progress = document.querySelector('#progress');
+    const time = document.querySelector('#time');
+    const firstDuration = 4667;
+    const sceneLength = 7000;
+    const duration = firstDuration + sceneLength * 2;
+    let elapsed = 0;
+    let lastFrame = 0;
+    let frameID = 0;
+    let playing = false;
+
+    function render() {
+      const active = elapsed < firstDuration ? 0 : 1;
+      scenes.forEach((scene, index) => {
+        scene.classList.toggle('active', index === active);
+        scene.setAttribute('aria-hidden', String(index !== active));
+      });
+      scenes[1].classList.toggle('squares-active', elapsed >= firstDuration + sceneLength);
+      progress.value = String(Math.round(elapsed));
+      time.value = `0:${String(elapsed === duration ? Math.ceil(duration / 1000) : Math.floor(elapsed / 1000)).padStart(2, '0')} / 0:19`;
+      playButton.textContent = playing ? 'Pause' : 'Play';
+      playButton.setAttribute('aria-label', `${playing ? 'Pause' : 'Play'} animation`);
+    }
+
+    function pause() {
+      playing = false;
+      cancelAnimationFrame(frameID);
+      render();
+    }
+
+    function tick(now) {
+      if (!playing) return;
+      elapsed = Math.min(duration, elapsed + now - lastFrame);
+      lastFrame = now;
+      render();
+      if (elapsed === duration) { pause(); return; }
+      frameID = requestAnimationFrame(tick);
+    }
+
+    function play() {
+      if (elapsed === duration) elapsed = 0;
+      playing = true;
+      lastFrame = performance.now();
+      render();
+      frameID = requestAnimationFrame(tick);
+    }
+
+    playButton.addEventListener('click', () => playing ? pause() : play());
+    replayButton.addEventListener('click', () => { pause(); elapsed = 0; play(); });
+    progress.addEventListener('input', () => { elapsed = Number(progress.value); lastFrame = performance.now(); render(); });
+    document.addEventListener('keydown', event => {
+      if (event.code === 'Space' && event.target !== playButton && event.target !== replayButton && event.target !== progress) {
+        event.preventDefault();
+        playing ? pause() : play();
+      }
+    });
+    render();
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) play();
+  </script>
+</body>
+</html>
